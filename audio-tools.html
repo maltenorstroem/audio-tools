@@ -1,0 +1,96 @@
+<link rel="import" href="../polymer/polymer-element.html">
+
+<dom-module id="audio-tools">
+
+    <script>
+        /**
+         * `audio-tools`
+         * Web Audio API components
+         *
+         * @customElement
+         * @polymer
+         * @demo demo/index.html
+         */
+        class AudioTools extends Polymer.Element {
+            static get is() {
+                return 'audio-tools';
+            }
+
+            static get properties() {
+                return {
+                    /**
+                     * WebKit Audio Context
+                     */
+                    audioContext: {
+                        type: Object,
+                        notify: true
+                    },
+
+                    bufferSource: {
+                        type: Object,
+                        notify: true
+                    },
+
+                    /**
+                     * URL Sound file
+                     */
+                    url: {
+                        type: String,
+                        observer: "_urlChanged"
+                    },
+
+                    /**
+                     * If true, the player will start instantly after the url is set.
+                     */
+                    autostart: {
+                        type: Boolean,
+                        value: false,
+                        reflectToAttribute: true
+                    },
+
+                    _buffer: Object
+                };
+            }
+
+            ready() {
+                super.ready();
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.set('audioContext', new AudioContext());
+            }
+
+            play(){
+                this.set('bufferSource', this.audioContext.createBufferSource());
+                this.bufferSource.buffer = this._buffer;
+                this.bufferSource.connect(this.audioContext.destination);
+                this.bufferSource.loop = true;
+                this.bufferSource.start(0);
+            }
+
+            _urlChanged(url) {
+                if (url !== undefined) {
+
+                    var self = this;
+                    var request = new XMLHttpRequest();
+                    request.open('GET', url, true);
+                    request.responseType = 'arraybuffer';
+
+                    // Decode asynchronously
+                    request.onload = function () {
+                        self.audioContext.decodeAudioData(request.response, function (buffer) {
+                            self._buffer = buffer;
+
+                            if (self.autostart){
+                                self.play();
+                            }
+                        }, function (e) {
+                            console.log(e);
+                        });
+                    };
+                    request.send();
+                }
+            }
+        }
+
+        window.customElements.define(AudioTools.is, AudioTools);
+    </script>
+</dom-module>
